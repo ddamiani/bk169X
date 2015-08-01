@@ -2,6 +2,7 @@ import sys
 import argparse
 
 import serial
+
 import IPython
 
 import os
@@ -73,26 +74,22 @@ def __parse_cli():
 def main():
     try:
         __args = __parse_cli()
-        __bkps = _bkcont.PowerSupply(__args.port)
-        try:
-            __bkps.connect()
-            __banner_base = '*  {mode} tool for BK Precision 169X Series DC power supplies  *'
+        __banner_base = '*  {mode} tool for BK Precision 169X Series DC power supplies  *'
+        with _bkcont.PowerSupply(__args.port) as __bkps:
             if __args.mode == 'calib':
                 __banner = __banner_base.format(mode='Calibration')
                 calib = _bkcal.PowerSupplyCalib(__bkps, __args.vstart, __args.vend, __args.vstep, __args.settle)
             elif __args.mode == 'control':
                 __banner = __banner_base.format(mode='Control')
-                bkps = __bkps
+                ps = __bkps
             else:
                 print('Unknown tool mode: {mode}'.format(mode=__args.mode))
                 sys.exit(1)
             __banner = '\n{0}\n{1}\n{0}\n'.format('*'*len(__banner), __banner)
             IPython.embed(banner1=__banner)
-        except serial.SerialException as ser_ex:
-            print('Problem connecting to power supply:', ser_ex)
-            sys.exit(1)
-        finally:
-            __bkps.close()
+    except serial.SerialException as ser_ex:
+        print('Problem connecting to power supply:', ser_ex)
+        sys.exit(1)
     except KeyboardInterrupt:
         print('\nExitting tool!')
 
