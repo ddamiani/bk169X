@@ -1,5 +1,7 @@
 import serial
 
+import bk169X.sim as _bksim
+
 
 class PSCommError(Exception):
     pass
@@ -14,7 +16,8 @@ class PowerSupply(object):
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
             address='00',
-            timeout=1
+            timeout=1,
+            simulated=False
     ):
         self.device = device
         self.baud = baud
@@ -23,20 +26,24 @@ class PowerSupply(object):
         self.stopbits = stopbits
         self.address = address
         self.timeout = timeout
+        self.simulated = simulated
         self._ser = None
         self._cmd_rep = 'OK'
         self._cmd_rep_fail = ''
 
     def connect(self):
         if self._ser is None:
-            self._ser = serial.Serial(
-                self.device,
-                self.baud,
-                bytesize=self.bytesize,
-                parity=self.parity,
-                stopbits=self.stopbits,
-                timeout=self.timeout
-            )
+            if self.simulated:
+                self._ser = _bksim.SerialSim(timeout=self.timeout)
+            else:
+                self._ser = serial.Serial(
+                    self.device,
+                    self.baud,
+                    bytesize=self.bytesize,
+                    parity=self.parity,
+                    stopbits=self.stopbits,
+                    timeout=self.timeout
+                )
 
     def close(self):
         self._ser.close()
@@ -57,13 +64,13 @@ class PowerSupply(object):
 
     def _readline(self):
         eol = b'\r'
-        leneol = len(eol)
+        length_eol = len(eol)
         line = bytearray()
         while True:
             c = self._ser.read(1)
             if c:
                 line += c
-                if line[-leneol:] == eol:
+                if line[-length_eol:] == eol:
                     break
             else:
                 break
@@ -109,6 +116,18 @@ class PowerSupply(object):
                 self.cmd('VOLT', self._float_to_fmt(voltage, 1, digits))
             if current is not None:
                 self.cmd('CURR', self._float_to_fmt(current, 2, digits))
+
+    def maximum(self):
+        digits = 3
+        resp = self.cmd('GMAX')
+        return self._fmt_to_float(resp[:digits], 1), self._fmt_to_float(resp[digits:], 2)
+
+    def voltage_limit(self, voltage=None):
+        if voltage is None:
+            resp = self.cmd('GOVP')
+            return self._fmt_to_float(resp, 1)
+        else:
+            self.cmd('SOVP', self._float_to_fmt(voltage, 1, 3))
 
     def getd(self):
         return self.cmd('GETD')

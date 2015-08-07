@@ -2,7 +2,6 @@ import sys
 import argparse
 
 import serial
-
 import IPython
 
 import os
@@ -36,7 +35,15 @@ def __parse_cli():
 
     control_parser = subparser.add_parser('control', help='Control mode of the tool')
 
+    control_parser.add_argument(
+        '-s',
+        '--simulate',
+        action='store_true',
+        help='run the control software with a simulated serial device'
+    )
+
     calib_parser = subparser.add_parser('calib', help='Calibrtion mode of the tool')
+    calib_parser.set_defaults(simulate=False)
 
     calib_parser.add_argument(
         'vstart',
@@ -75,23 +82,31 @@ def main():
     try:
         __args = __parse_cli()
         __banner_base = '*  {mode} tool for BK Precision 169X Series DC power supplies  *'
-        with _bkcont.PowerSupply(__args.port) as __bkps:
+        __banner_stp = 'Power supply settings: {volt:4.1f} V, {curr:5.2f} A\n'
+        __banner_read = 'Power supply readings: {volt:4.1f} V, {curr:5.2f} A\n'
+        with _bkcont.PowerSupply(__args.port, simulated=__args.simulate) as __bkps:
             if __args.mode == 'calib':
                 __banner = __banner_base.format(mode='Calibration')
                 calib = _bkcal.PowerSupplyCalib(__bkps, __args.vstart, __args.vend, __args.vstep, __args.settle)
+                __stp_v, __stp_c = calib.ps.setpoint()
+                __status = __banner_stp.format(volt=__stp_v, curr=__stp_c)
+                __status += __banner_read.format(volt=calib.ps.voltage(), curr=calib.ps.current())
             elif __args.mode == 'control':
-                __banner = __banner_base.format(mode='Control')
                 ps = __bkps
+                __banner = __banner_base.format(mode='Control')
+                __stp_v, __stp_c = ps.setpoint()
+                __status = __banner_stp.format(volt=__stp_v, curr=__stp_c)
+                __status += __banner_read.format(volt=ps.voltage(), curr=ps.current())
             else:
                 print('Unknown tool mode: {mode}'.format(mode=__args.mode))
                 sys.exit(1)
             __banner = '\n{0}\n{1}\n{0}\n'.format('*'*len(__banner), __banner)
-            IPython.embed(banner1=__banner)
+            IPython.embed(banner1=__banner, banner2=__status)
     except serial.SerialException as ser_ex:
         print('Problem connecting to power supply:', ser_ex)
         sys.exit(1)
     except KeyboardInterrupt:
-        print('\nExitting tool!')
+        print('\nExiting tool!')
 
 
 if __name__ == '__main__':
