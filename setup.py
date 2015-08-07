@@ -9,8 +9,7 @@ setup(
     long_description="A module for control and calibration of BK Precision 169X Series DC power supplies via RS-232",
     license="BSD",
     url="https://github.com/ddamiani/bk169X",
-    package_dir={'': 'src'},
-    packages=find_packages('src'),
+    packages=find_packages(),
     install_requires=[
         'pyserial',
         'numpy',
