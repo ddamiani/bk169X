@@ -1,8 +1,6 @@
 bk169X
 =======
 
-BK Precision 169X Series control and calibration
-
 A simple Python library for interacting with BK Precision 169X Series DC power supplies. Communicates with the supplies
 over an RS-232 connection. Also has the ability to read and update the voltage and current calibration constants of the
 supply in the unit's eeprom.
