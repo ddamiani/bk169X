@@ -91,8 +91,8 @@ def main():
         __args = __parse_cli()
         __port = __args.port
         __banner_base = '*  {mode} tool for BK Precision 169X Series DC power supplies  *'
-        __banner_stp = 'Power supply settings: {volt:4.1f} V, {curr:5.2f} A\n'
-        __banner_read = 'Power supply readings: {volt:4.1f} V, {curr:5.2f} A\n'
+        __banner_stp = 'Power supply settings: {volt:4.2f} V, {curr:5.3f} A\n'
+        __banner_read = 'Power supply readings: {volt:4.2f} V, {curr:5.3f} A\n'
         # prompt user for input if no serial port was specified
         if __port is None:
             __port = input('Please specify a serial port to use (e.g. COM3, /dev/ttyUSB0): ')
