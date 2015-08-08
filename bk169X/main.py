@@ -5,6 +5,7 @@ import serial
 import IPython
 
 import os
+import glob
 import bk169X.control as _bkcont
 import bk169X.calib as _bkcal
 
@@ -15,12 +16,19 @@ def __parse_cli():
     )
 
     settle = 1.5
+    serial_port_linux = '/dev/ttyUSB0'
+    serial_port_osx = '/dev/cu.usbserial-*'
+    serial_port = None
     if os.name == 'nt':
         serial_port = 'COM3'
     elif os.name == 'posix':
-        serial_port = 'ttyS0'
-    else:
-        serial_port = None
+        if os.path.exists(serial_port_linux):
+            serial_port = serial_port_linux
+        else:
+            # Possible dev name on OSX
+            devs = glob.glob(serial_port_osx)
+            if devs:
+                serial_port = devs[0]
 
     parser.add_argument(
         '-p',
@@ -81,10 +89,14 @@ def __parse_cli():
 def main():
     try:
         __args = __parse_cli()
+        __port = __args.port
         __banner_base = '*  {mode} tool for BK Precision 169X Series DC power supplies  *'
         __banner_stp = 'Power supply settings: {volt:4.1f} V, {curr:5.2f} A\n'
         __banner_read = 'Power supply readings: {volt:4.1f} V, {curr:5.2f} A\n'
-        with _bkcont.PowerSupply(__args.port, simulated=__args.simulate) as __bkps:
+        # prompt user for input if no serial port was specified
+        if __port is None:
+            __port = input('Please specify a serial port to use (e.g. COM3, /dev/ttyUSB0): ')
+        with _bkcont.PowerSupply(__port, simulated=__args.simulate) as __bkps:
             if __args.mode == 'calib':
                 __banner = __banner_base.format(mode='Calibration')
                 calib = _bkcal.PowerSupplyCalib(__bkps, __args.vstart, __args.vend, __args.vstep, __args.settle)
